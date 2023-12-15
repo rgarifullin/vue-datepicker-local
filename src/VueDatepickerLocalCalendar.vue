@@ -43,26 +43,36 @@
   </div>
   <div :class="`${pre}-foot`" v-if="m==='H'">
     <div :class="`${pre}-hour`">
-      <a :title="local.hourTip" @click="showHours=!showHours,showMinutes=showSeconds=false" :class="{on:showHours}">{{hour|dd}}</a>
+      <a :title="local.hourTip" @click="showHours=!showHours,showMinutes=showSeconds=false" :class="{on:showHours}">{{dd(hour)}}</a>
       <span>:</span>
-      <a :title="local.minuteTip" @click="showMinutes=!showMinutes,showHours=showSeconds=false" :class="{on:showMinutes}">{{minute|dd}}</a>
+      <a :title="local.minuteTip" @click="showMinutes=!showMinutes,showHours=showSeconds=false" :class="{on:showMinutes}">{{dd(minute)}}</a>
       <span>:</span>
-      <a :title="local.secondTip" @click="showSeconds=!showSeconds,showHours=showMinutes=false" :class="{on:showSeconds}">{{second|dd}}</a>
+      <a :title="local.secondTip" @click="showSeconds=!showSeconds,showHours=showMinutes=false" :class="{on:showSeconds}">{{dd(second)}}</a>
     </div>
   </div>
 </div>
 </template>
 
 <script>
+import Formatters from './mixins/formatters'
+
 export default {
+  compatConfig: { MODE: 3 },
   name: 'VueDatepickerLocalCalendar',
+  mixins: [Formatters],
   props: {
-    value: null,
+    modelValue: null,
     left: false,
-    right: false
+    right: false,
+    local: { type: Object },
+    format: { type: String },
+    startDate: { type: [Date, String] },
+    endDate: { type: [Date, String] },
+    disabledDate: { type: Function }
   },
+  emits: ['update:modelValue', 'update:endDate', 'ok'],
   data () {
-    const time = this.get(this.value)
+    const time = this.get(this.modelValue)
     return {
       pre: 'calendar',
       m: 'D',
@@ -80,7 +90,7 @@ export default {
     }
   },
   watch: {
-    value (val) {
+    modelValue (val) {
       const $this = this
       const time = $this.get(val)
       $this.year = time.year
@@ -92,20 +102,14 @@ export default {
     }
   },
   computed: {
-    local () {
-      return this.$parent.local
-    },
-    format () {
-      return this.$parent.format
-    },
     start () {
-      return this.parse(this.$parent.dates[0])
+      return this.parse(this.startDate)
     },
     end () {
-      return this.parse(this.$parent.dates[1])
+      return this.parse(this.endDate)
     },
     ys () {
-      return parseInt(this.year / 10) * 10
+      return this.parse(this.year / 10) * 10
     },
     ye () {
       return this.ys + 10
@@ -159,9 +163,6 @@ export default {
       return days
     }
   },
-  filters: {
-    dd: val => ('0' + val).slice(-2)
-  },
   methods: {
     get (time) {
       return {
@@ -181,7 +182,6 @@ export default {
       const maxDay = new Date(year, month + 1, 0).getDate()
       const time = new Date(year, month, day > maxDay ? maxDay : day, hour, minute, second)
       const t = $this.parse(time)
-      const f = $this.$parent.tf
       const classObj = {}
       let flag = false
       if (format === 'YYYY') {
@@ -189,10 +189,10 @@ export default {
       } else if (format === 'YYYYMM') {
         flag = month === $this.month
       } else {
-        flag = f($this.value, format) === f(time, format)
+        flag = this.tf($this.modelValue, format) === this.tf(time, format)
       }
       classObj[`${$this.pre}-date`] = true
-      classObj[`${$this.pre}-date-disabled`] = ($this.right && t < $this.start) || $this.$parent.disabledDate(time, format)
+      classObj[`${$this.pre}-date-disabled`] = ($this.right && t < $this.start) || $this.disabledDate(time, format)
       classObj[`${$this.pre}-date-on`] = ($this.left && t > $this.start) || ($this.right && t < $this.end)
       classObj[`${$this.pre}-date-selected`] = flag
       return classObj
@@ -224,7 +224,7 @@ export default {
       info && info.n && $this.nm()
       info && info.p && $this.pm()
       if (info === 'h') {
-        const time = $this.get(this.value)
+        const time = $this.get(this.modelValue)
         year = time.year
         month = time.month
       } else if (info === 'm' || info === 'y') {
@@ -232,10 +232,13 @@ export default {
       }
       const _time = new Date(year || $this.year, month || $this.month, day || $this.day, $this.hour, $this.minute, $this.second)
       if ($this.left && parseInt(_time.getTime() / 1000) > $this.end) {
-        this.$parent.dates[1] = _time
+        $this.$emit('update:endDate', _time)
       }
-      $this.$emit('input', _time)
-      $this.$parent.ok(info === 'h')
+      $this.$emit('update:modelValue', _time)
+      $this.$emit('ok', info === 'h')
+    },
+    dd (val) {
+      return ('0' + val).slice(-2)
     }
   },
   mounted () {
@@ -436,4 +439,3 @@ export default {
   font-weight: bold;
 }
 </style>
-﻿

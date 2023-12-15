@@ -1,7 +1,7 @@
-import Vue from 'vue'
+import { createApp } from 'vue'
 import App from './App.vue'
 import DatePicker from '../src'
-Vue.use(DatePicker)
-new Vue({
-  render: h => h(App)
-}).$mount('#app')
+
+const app = createApp(App)
+app.use(DatePicker)
+app.mount('#app')

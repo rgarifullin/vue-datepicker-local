@@ -1,6 +1,6 @@
 <template>
 <div>
-  <vue-datepicker-local v-model="timeRange" format="YYYY-MM-DD HH:mm:ss" :disabled-date="disabledDate" @input="change"/><br/>
+  <vue-datepicker-local v-model="timeRange" format="YYYY-MM-DD HH:mm:ss" :disabled-date="disabledDate" @update:modelValue="change"/><br/>
   <vue-datepicker-local v-model="timeRange" format="YYYY-MM-DD HH:mm:ss" :disabled-date="disabledDate" :local="local" range-separator="至"/><br/>
   <vue-datepicker-local v-model="timeRange" format="YYYY-MM-DD HH:mm:ss" :disabled-date="disabledDate" :local="local" show-buttons @confirm="selectedDate" clearable @cancel="cancel" @clear="clear"/><br/>
   <vue-datepicker-local v-model="time" format="YYYY-MMM-DD" :local="local" /><br/>
