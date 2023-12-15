@@ -1,6 +1,8 @@
-const path = require('path')
 const webpack = require('webpack')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin')
+const TerserPlugin = require('terser-webpack-plugin')
+const { VueLoaderPlugin } = require('vue-loader')
 const banner =
   'vue-datetime-local.js v1.0.19\n' +
   '(c) 2017-' + new Date().getFullYear() + ' weifeiyue\n' +
@@ -9,9 +11,6 @@ module.exports = {
   mode: 'development',
   entry: {
     app: './example/app.js'
-  },
-  output: {
-    filename: '[name].js'
   },
   module: {
     rules: [{
@@ -33,21 +32,22 @@ module.exports = {
       }
     }, {
       test: /\.css$/i,
-      use: [MiniCssExtractPlugin.loader, 'css-loader'],
+      use: [process.env.NODE_ENV !== 'production'
+        ? 'vue-style-loader'
+        : MiniCssExtractPlugin.loader, 'css-loader']
     }]
   },
   devServer: {
-    historyApiFallback: true,
-    noInfo: true
+    historyApiFallback: true
   },
   performance: {
     hints: false
   },
   plugins: [
-    new webpack.optimize.ModuleConcatenationPlugin(),
-    new MiniCssExtractPlugin()
+    new MiniCssExtractPlugin(),
+    new VueLoaderPlugin()
   ],
-  devtool: '#cheap-module-eval-source-map'
+  devtool: 'eval-cheap-module-source-map'
 }
 
 if (process.env.NODE_ENV === 'production') {
@@ -57,8 +57,6 @@ if (process.env.NODE_ENV === 'production') {
     'vue-datepicker-local': './src/index.js'
   }
   module.exports.output = {
-    path: path.resolve(__dirname, './dist'),
-    filename: '[name].js',
     libraryTarget: 'umd',
     library: '[name]'
   }
@@ -68,4 +66,8 @@ if (process.env.NODE_ENV === 'production') {
       minimize: true
     })
   ])
+  module.exports.optimization = {
+    minimize: true,
+    minimizer: [new TerserPlugin(), new CssMinimizerPlugin()]
+  }
 }
