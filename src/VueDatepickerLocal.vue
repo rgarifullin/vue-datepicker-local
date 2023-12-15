@@ -5,11 +5,11 @@
   <transition name="datepicker-anim">
     <div class="datepicker-popup" :class="[popupClass,{'datepicker-inline':type==='inline'}]" tabindex="-1" v-if="show||type==='inline'">
       <template v-if="range">
-        <vue-datepicker-local-calendar v-model="dates[0]" :left="true"></vue-datepicker-local-calendar>
-        <vue-datepicker-local-calendar v-model="dates[1]" :right="true"></vue-datepicker-local-calendar>
+        <vue-datepicker-local-calendar v-model="dates[0]" :start-date="dates[0]" v-model:end-date="dates[1]" :left="true" :local="local" :format="format" :disabled-date="disabledDate" @ok="onOk" />
+        <vue-datepicker-local-calendar v-model="dates[1]" :start-date="dates[0]" v-model:end-date="dates[1]" :right="true" :local="local" :format="format" :disabled-date="disabledDate" @ok="onOk" />
       </template>
       <template v-else>
-        <vue-datepicker-local-calendar v-model="dates[0]"></vue-datepicker-local-calendar>
+        <vue-datepicker-local-calendar v-model="dates[0]" :start-date="dates[0]" :local="local" :format="format" :disabled-date="disabledDate" @ok="onOk" />
       </template>
       <div v-if="showButtons" class="datepicker__buttons">
         <button @click.prevent.stop="cancel" class="datepicker__button-cancel">{{this.local.cancelTip}}</button>
@@ -22,14 +22,18 @@
 
 <script>
 import VueDatepickerLocalCalendar from './VueDatepickerLocalCalendar.vue'
+import Formatters from './mixins/formatters'
+
 export default {
+  compatConfig: { MODE: 3 },
   name: 'VueDatepickerLocal',
+  mixins: [Formatters],
   components: { VueDatepickerLocalCalendar },
   props: {
     name: [String],
     inputClass: [String],
     popupClass: [String],
-    value: [Date, Array, String],
+    modelValue: [Date, Array, String],
     disabled: [Boolean],
     type: {
       type: String,
@@ -77,10 +81,11 @@ export default {
     },
     dateRangeSelect: [Function]
   },
+  emits: ['update:modelValue', 'confirm', 'cancel', 'clear'],
   data () {
     return {
       show: false,
-      dates: this.vi(this.value)
+      dates: this.vi(this.modelValue)
     }
   },
   computed: {
@@ -88,7 +93,7 @@ export default {
       return this.dates.length === 2
     },
     text () {
-      const val = this.value
+      const val = this.modelValue
       const txt = this.dates.map(date => this.tf(date)).join(` ${this.rangeSeparator} `)
       if (Array.isArray(val)) {
         return val.length > 1 ? txt : ''
@@ -98,17 +103,20 @@ export default {
     }
   },
   watch: {
-    value (val) {
-      this.dates = this.vi(this.value)
+    modelValue: {
+      handler (val) {
+        this.dates = this.vi(this.modelValue)
+      },
+      deep: true
     }
   },
   methods: {
     get () {
-      return Array.isArray(this.value) ? this.dates : this.dates[0]
+      return Array.isArray(this.modelValue) ? this.dates : this.dates[0]
     },
     cls () {
       this.$emit('clear')
-      this.$emit('input', this.range ? [] : '')
+      this.$emit('update:modelValue', this.range ? [] : '')
     },
     vi (val) {
       if (Array.isArray(val)) {
@@ -117,42 +125,12 @@ export default {
         return val ? new Array(new Date(val)) : [new Date()]
       }
     },
-    ok (leaveOpened) {
+    onOk (leaveOpened) {
       const $this = this
-      $this.$emit('input', $this.get())
+      $this.$emit('update:modelValue', $this.get())
       !leaveOpened && !$this.showButtons && setTimeout(() => {
         $this.show = $this.range
       })
-    },
-    tf (time, format) {
-      const year = time.getFullYear()
-      const month = time.getMonth()
-      const day = time.getDate()
-      const hours24 = time.getHours()
-      const hours = hours24 % 12 === 0 ? 12 : hours24 % 12
-      const minutes = time.getMinutes()
-      const seconds = time.getSeconds()
-      const milliseconds = time.getMilliseconds()
-      const dd = t => ('0' + t).slice(-2)
-      const map = {
-        YYYY: year,
-        MM: dd(month + 1),
-        MMM: this.local.months[month],
-        MMMM: this.local.monthsHead[month],
-        M: month + 1,
-        DD: dd(day),
-        D: day,
-        HH: dd(hours24),
-        H: hours24,
-        hh: dd(hours),
-        h: hours,
-        mm: dd(minutes),
-        m: minutes,
-        ss: dd(seconds),
-        s: seconds,
-        S: milliseconds
-      }
-      return (format || this.format).replace(/Y+|M+|D+|H+|h+|m+|s+|S+/g, str => map[str])
     },
     dc (e) {
       this.show = this.$el.contains(e.target) && !this.disabled
@@ -169,7 +147,7 @@ export default {
   mounted () {
     document.addEventListener('click', this.dc, true)
   },
-  beforeDestroy () {
+  beforeUnmount () {
     document.removeEventListener('click', this.dc, true)
   }
 }
