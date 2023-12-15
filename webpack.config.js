@@ -1,11 +1,12 @@
 const path = require('path')
 const webpack = require('webpack')
-const ExtractTextPlugin = require('extract-text-webpack-plugin')
+const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const banner =
   'vue-datetime-local.js v1.0.19\n' +
   '(c) 2017-' + new Date().getFullYear() + ' weifeiyue\n' +
   'Released under the MIT License.'
 module.exports = {
+  mode: 'development',
   entry: {
     app: './example/app.js'
   },
@@ -17,7 +18,6 @@ module.exports = {
       test: /\.vue$/,
       loader: 'vue-loader',
       options: {
-        extractCSS: true,
         esModule: false,
         preserveWhitespace: false
       }
@@ -31,6 +31,9 @@ module.exports = {
       options: {
         name: '[name].[ext]?[hash]'
       }
+    }, {
+      test: /\.css$/i,
+      use: [MiniCssExtractPlugin.loader, 'css-loader'],
     }]
   },
   devServer: {
@@ -42,12 +45,13 @@ module.exports = {
   },
   plugins: [
     new webpack.optimize.ModuleConcatenationPlugin(),
-    new ExtractTextPlugin('[name].css')
+    new MiniCssExtractPlugin()
   ],
   devtool: '#cheap-module-eval-source-map'
 }
 
 if (process.env.NODE_ENV === 'production') {
+  module.mode = 'production'
   module.exports.devtool = false
   module.exports.entry = {
     'vue-datepicker-local': './src/index.js'
@@ -60,17 +64,6 @@ if (process.env.NODE_ENV === 'production') {
   }
   module.exports.plugins = (module.exports.plugins || []).concat([
     new webpack.BannerPlugin(banner),
-    new webpack.DefinePlugin({
-      'process.env': {
-        NODE_ENV: '"production"'
-      }
-    }),
-    new webpack.optimize.UglifyJsPlugin({
-      sourceMap: true,
-      compress: {
-        warnings: false
-      }
-    }),
     new webpack.LoaderOptionsPlugin({
       minimize: true
     })
